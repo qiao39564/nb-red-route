@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#c92323">
+<title>宁波红色文化拍摄点位路线图</title>
+<link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/leaflet/1.9.4/leaflet.min.css"
+  onerror="this.onerror=null;this.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.min.css'">
+<style>
+:root{--red:#c92323;--blue:#2563eb;--ink:#111827;--muted:#6b7280;--line:#e5e7eb;--safe-b:env(safe-area-inset-bottom,0px);}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html{height:100%;}
+body{height:100vh;height:100dvh;font-family:system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+  color:var(--ink);overflow:hidden;background:#fff;overscroll-behavior:none;}
+.app{display:flex;height:100%;width:100%;}
+
+/* ============ 地图区 ============ */
+.map-panel{flex:1;position:relative;min-width:0;min-height:0;overflow:hidden;background:#eef3f8;}
+#map{width:100%;height:100%;display:block;background:#e8eef4;}
+.hud{position:absolute;top:10px;left:10px;display:flex;gap:5px;padding:5px;
+  background:rgba(255,255,255,.94);backdrop-filter:blur(8px);border-radius:10px;
+  box-shadow:0 2px 12px rgba(15,23,42,.10);z-index:1000;}
+.hud button{border:none;background:#f1f5f9;padding:7px 12px;border-radius:7px;
+  font-size:12px;cursor:pointer;color:#475569;transition:.15s;min-height:32px;font-family:inherit;}
+.hud button:hover{background:#e2e8f0;}
+.hud button.on{background:var(--red);color:#fff;}
+
+.tip{position:fixed;pointer-events:none;background:rgba(17,24,39,.93);color:#fff;
+  padding:6px 10px;border-radius:8px;font-size:12px;line-height:1.5;max-width:240px;
+  opacity:0;transform:translateY(4px);transition:opacity .12s,transform .12s;z-index:50;}
+.tip.show{opacity:1;transform:translateY(0);}
+
+.hint{position:absolute;right:10px;bottom:10px;font-size:11px;color:#94a3b8;
+  background:rgba(255,255,255,.85);padding:4px 9px;border-radius:6px;z-index:500;}
+
+/* ============ Leaflet 定制 ============ */
+.leaflet-container{font-family:inherit;}
+.leaflet-popup-content-wrapper{border-radius:12px;box-shadow:0 8px 24px rgba(15,23,42,.18);}
+.leaflet-popup-content{font:13px/1.55 system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+  margin:12px 14px;min-width:180px;}
+.pm{background:transparent;border:none;}
+.pm .dot{width:24px;height:24px;border-radius:50%;background:#dc2626;border:2px solid #fff;color:#fff;
+  font-size:11px;font-weight:700;display:grid;place-items:center;
+  box-shadow:0 1px 5px rgba(0,0,0,.35);transition:transform .12s;}
+.pm.ph .dot{background:#94a3b8;}
+.pm.start .dot{background:#059669;border-radius:6px;}
+.pm.start .pl{color:#059669;font-weight:700;}
+.pm.sel .dot{background:#111827;transform:scale(1.18);}
+.pm.hov .dot{transform:scale(1.12);}
+.pm.sel.hov .dot{transform:scale(1.18);}
+.pm .pl{position:absolute;left:50%;top:100%;transform:translateX(-50%);margin-top:2px;
+  white-space:nowrap;font-size:11px;font-weight:600;color:#334155;
+  background:rgba(255,255,255,.92);padding:2px 6px;border-radius:5px;
+  box-shadow:0 1px 3px rgba(0,0,0,.18);pointer-events:none;}
+.seg{background:transparent;border:none;display:grid;place-items:center;}
+.seg span{display:inline-block;background:rgba(255,255,255,.92);color:#2563eb;
+  font-size:10px;font-weight:600;padding:2px 6px;border-radius:7px;
+  box-shadow:0 1px 3px rgba(0,0,0,.15);white-space:nowrap;}
+.pop .pop-addr{color:#6b7280;font-size:12px;margin-top:2px;line-height:1.45;}
+.pop .pop-meta{color:#94a3b8;font-size:11px;margin-top:4px;}
+.pop .pop-links{display:flex;gap:12px;margin-top:6px;flex-wrap:wrap;}
+.pop .pop-links a{font-size:12px;color:#2563eb;text-decoration:none;}
+.pop .pop-btns{display:flex;gap:8px;margin-top:10px;}
+.pop .pop-btns button{flex:1;padding:6px 0;border:1px solid #e5e7eb;border-radius:7px;
+  background:#fff;cursor:pointer;font-size:12px;font-family:inherit;color:#475569;}
+.pop .pop-btns .pop-del{color:#dc2626;border-color:#f3c9c9;}
+
+/* ============ 侧边栏 ============ */
+.side{width:380px;flex:none;display:flex;flex-direction:column;border-left:1px solid var(--line);
+  background:#fff;min-height:0;}
+.side h1{font-size:16px;color:var(--red);padding:14px 16px 8px;letter-spacing:.5px;flex:none;}
+.stats{display:flex;gap:6px;flex-wrap:wrap;padding:0 16px 10px;font-size:12px;
+  color:var(--muted);border-bottom:1px solid var(--line);flex:none;}
+.stats span{background:#f3f4f6;border-radius:999px;padding:3px 9px;white-space:nowrap;}
+.list{flex:1;overflow-y:auto;padding:8px 10px;-webkit-overflow-scrolling:touch;min-height:0;}
+.item{display:flex;gap:10px;padding:10px 8px;border-radius:10px;cursor:pointer;
+  border:1px solid transparent;transition:.15s;}
+.item:hover{background:#f8fafc;}
+.item.active{background:#fff1f1;border-color:#f7caca;}
+.item .drag{flex:none;display:grid;place-items:center;width:16px;color:#c3cad3;
+  font-size:15px;font-weight:700;cursor:grab;touch-action:none;user-select:none;
+  -webkit-user-select:none;}
+.item .drag:active{cursor:grabbing;color:#64748b;}
+.item.ph .drag{display:none;}
+.item.dragging{opacity:.55;outline:2px dashed #2563eb;background:#eff6ff;}
+.idx{flex:none;width:24px;height:24px;border-radius:50%;background:var(--red);color:#fff;
+  font-size:12px;font-weight:600;display:grid;place-items:center;}
+.item.active .idx{background:#111827;}
+.body{flex:1;min-width:0;}
+.name{font-size:14px;font-weight:600;line-height:1.35;word-break:break-all;}
+.addr{font-size:12px;color:var(--muted);margin-top:2px;line-height:1.45;}
+.meta{font-size:11px;color:#94a3b8;margin-top:4px;}
+.links{margin-top:6px;display:flex;gap:10px;flex-wrap:wrap;}
+.links a{font-size:11px;color:var(--blue);text-decoration:none;}
+.links a:active{opacity:.6;}
+.ops{display:flex;flex-direction:column;gap:4px;flex:none;}
+.ops button{border:none;background:#f1f5f9;color:#64748b;width:28px;height:28px;
+  border-radius:6px;cursor:pointer;font-size:13px;transition:.15s;}
+.ops button:active{background:#e2e8f0;}
+.side-foot{display:flex;gap:6px;padding:8px 10px calc(8px + var(--safe-b));
+  border-top:1px solid var(--line);flex-wrap:wrap;flex:none;}
+.side-foot button{flex:1;min-width:64px;padding:9px 4px;border-radius:8px;border:1px solid var(--line);
+  background:#fff;font-size:12px;cursor:pointer;font-family:inherit;}
+.side-foot button:active{background:#f1f5f9;}
+
+/* ============ 弹窗 ============ */
+.modal{position:fixed;inset:0;background:rgba(15,23,42,.5);display:none;place-items:center;
+  z-index:1200;padding:16px;}
+.modal.show{display:grid;}
+.modal-box{background:#fff;border-radius:14px;padding:20px;width:min(100%,360px);
+  max-height:90vh;overflow-y:auto;display:flex;flex-direction:column;gap:12px;
+  box-shadow:0 20px 50px rgba(15,23,42,.3);}
+.modal-box h2{font-size:16px;color:var(--red);}
+.modal-box label{font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:5px;}
+.modal-box input{border:1px solid var(--line);border-radius:8px;padding:10px;font-size:14px;
+  outline:none;font-family:inherit;}
+.modal-box input:focus{border-color:var(--blue);}
+.modal-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:4px;}
+.modal-btns button{padding:10px 18px;border-radius:8px;border:1px solid var(--line);
+  background:#fff;cursor:pointer;font-size:13px;font-family:inherit;}
+.modal-btns .primary{background:var(--red);color:#fff;border-color:var(--red);}
+
+/* ============ 手机适配 ============ */
+@media (max-width:860px){
+  .app{flex-direction:column;}
+  .map-panel{flex:1 1 auto;min-height:0;}
+  .side{width:100%;height:46%;flex:none;border-left:none;border-top:1px solid var(--line);
+    border-radius:14px 14px 0 0;box-shadow:0 -3px 14px rgba(15,23,42,.07);margin-top:-6px;position:relative;z-index:2;}
+  .side h1{font-size:14px;padding:10px 14px 4px;}
+  .stats{padding:0 14px 8px;font-size:11px;}
+  .item{padding:9px 6px;}
+  .name{font-size:13px;}
+  .addr{font-size:11px;}
+  .hud{top:8px;left:8px;padding:4px;gap:4px;}
+  .hud button{padding:6px 9px;font-size:11px;min-height:30px;}
+  .hint{display:none;}
+}
+@media (max-width:380px){
+  .side{height:50%;}
+  .name{font-size:12px;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <section class="map-panel">
+    <div id="map"></div>
+    <div class="hud">
+      <button id="btnFit">全图</button>
+      <button id="btnLine" class="on">连线</button>
+      <button id="btnLabel" class="on">名称</button>
+      <button id="btnBase">底图</button>
+    </div>
+    <div class="hint">拖动平移 · 滚轮缩放 · 点标记看详情</div>
+    <div id="tip" class="tip"></div>
+  </section>
+
+  <aside class="side">
+    <h1>📍 宁波红色文化拍摄点位</h1>
+    <div class="stats" id="stats"></div>
+    <div class="list" id="list"></div>
+    <div class="side-foot">
+      <button id="btnRoute">智能排序</button>
+      <button id="btnAdd">＋ 添加</button>
+      <button id="btnExport">导出</button>
+      <button id="btnImport">导入</button>
+      <button id="btnReset">恢复默认</button>
+    </div>
+  </aside>
+</div>
+
+<div class="modal" id="modal">
+  <div class="modal-box">
+    <h2 id="modalTitle">编辑点位</h2>
+    <label>名称<input id="fName" placeholder="如：柔石故居"></label>
+    <label>地址<input id="fAddr" placeholder="如：宁海县跃龙街道西门"></label>
+    <label>纬度 lat<input id="fLat" type="number" step="0.0001" inputmode="decimal" placeholder="29.2871"></label>
+    <label>经度 lng<input id="fLng" type="number" step="0.0001" inputmode="decimal" placeholder="121.4273"></label>
+    <div class="modal-btns">
+      <button id="mCancel">取消</button>
+      <button id="mSave" class="primary">保存</button>
+    </div>
+  </div>
+</div>
+<input type="file" id="fileInput" accept=".json,application/json" hidden>
+
+<script src="https://cdn.bootcdn.net/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>window.L||document.write('<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.min.js"><\/script>');</script>
+
+<script>
+/* ========================= 1. 数据 ========================= */
+const DEFAULT_POINTS = [
+  {id:"p1",  name:"宁波革命烈士纪念馆",            addr:"宁波市海曙区章水镇鄞江英雄路",            lng:121.4940, lat:29.8720},
+  {id:"p2",  name:"湾底村幸福奋斗馆",              addr:"宁波市鄞州区下应街道湾底村",              lng:121.59090, lat:29.81867},
+  {id:"p3",  name:"朱镜我党史教育基地",            addr:"宁波市鄞州区横溪镇金峨村朱家峰",          lng:121.6000, lat:29.7000},
+  {id:"p4",  name:"中共鄞县沙村支部旧址",          addr:"宁波市鄞州区塘溪镇沙村",                  lng:121.68000, lat:29.74000},
+  {id:"p5",  name:"鄞州区英雄烈士纪念馆",          addr:"宁波市鄞州区咸祥镇芦浦村",                lng:121.73330, lat:29.63330},
+  {id:"p11", name:"总台山烽火台",                  addr:"宁波市北仑区郭巨街道总台山山顶",          lng:122.03857, lat:29.86682},
+  {id:"p13", name:"陈德法题刻日涉成趣石",          addr:"宁波市镇海区梓荫山（镇海中学内）",        lng:121.71631, lat:29.95870},
+  {id:"p14", name:"中共坎镇支部旧址",              addr:"宁波市慈溪市崇寿镇相公殿村",              lng:121.3200, lat:30.1900},
+  {id:"p15", name:"相公殿战斗遗址",                addr:"宁波市慈溪市崇寿镇崇胜村（晏清村）",      lng:121.30000, lat:30.20000},
+  {id:"p16", name:"浙东工农红军第一师筹建处旧址",  addr:"宁波市慈溪市坎墩街道费家弄",              lng:121.28000, lat:30.20000},
+  {id:"p17", name:"杨贤江故居",                    addr:"宁波市慈溪市长河镇贤江村",                lng:121.2500, lat:30.2500},
+  {id:"p18", name:"四明山革命烈士纪念碑",          addr:"宁波市余姚市梁弄镇如意路128号",          lng:121.1800, lat:29.9210},
+  {id:"p19", name:"许岙战斗遗址",                  addr:"绍兴市上虞区岭南乡许岙村",                lng:120.98050, lat:29.77220},
+  {id:"p20", name:"毛杏表家乡奉化石门村",          addr:"宁波市奉化区溪口镇石门村金竹地",          lng:121.1500, lat:29.6500},
+  {id:"p21", name:"蓝碧轩四烈士公墓",              addr:"宁波市海曙区章水镇杖锡村鹿窠自然村",      lng:121.2500, lat:29.7500},
+  {id:"p22", name:"大皎村毋忘亭",                  addr:"宁波市海曙区章水镇大皎村",                lng:121.3000, lat:29.8000},
+  {id:"p23", name:"火烧建岙遗址",                  addr:"宁波市海曙区鄞江镇建岙村",                lng:121.3500, lat:29.7800},
+  {id:"p24", name:"滕头村乡村振兴学院",            addr:"宁波市奉化区萧王庙街道滕头村四明路401号", lng:121.41160, lat:29.66980},
+  {id:"p25", name:"王鲲烈士纪念馆",                addr:"宁波市奉化区大堰镇湖边桥村五份地",        lng:121.3238, lat:29.5232},
+  {id:"p26", name:"柔石故居",                      addr:"宁波市宁海县跃龙街道柔石路1号",          lng:121.4289, lat:29.2939},
+  {id:"p28", name:"待补充点位",                    addr:"点击「编辑」填写名称与坐标",              lng:121.5000, lat:29.8000, placeholder:true}
+];
+
+const STORAGE_KEY='nb-red-route-v5';
+const uid=()=>'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+
+/* ========================= 2. 状态 ========================= */
+let points=loadPoints();
+let selectedId=null;
+let showLine=true, showLabel=true;
+let baseKey='gaode';
+let engine=null;
+let editingId=null;
+
+const tipEl=document.getElementById('tip');
+const listEl=document.getElementById('list');
+const statsEl=document.getElementById('stats');
+const isTouch=matchMedia('(pointer:coarse)').matches;
+
+/* ========================= 3. 工具 ========================= */
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function haversine(a,b){
+  const R=6371, rad=Math.PI/180;
+  const dLat=(b.lat-a.lat)*rad, dLng=(b.lng-a.lng)*rad;
+  const h=Math.sin(dLat/2)**2+Math.cos(a.lat*rad)*Math.cos(b.lat*rad)*Math.sin(dLng/2)**2;
+  return 2*R*Math.asin(Math.sqrt(h));
+}
+
+/* WGS84 → GCJ02（高德/腾讯/百度底图与跳转链接用） */
+function wgs84ToGcj02(lng,lat){
+  const a=6378245.0, ee=0.00669342162296594323;
+  if(lng<72.004||lng>137.8347||lat<0.8293||lat>55.8271) return [lng,lat];
+  const tLat=(x,y)=>{let r=-100+2*x+3*y+0.2*y*y+0.1*x*y+0.2*Math.sqrt(Math.abs(x));
+    r+=(20*Math.sin(6*x*Math.PI)+20*Math.sin(2*x*Math.PI))*2/3;
+    r+=(20*Math.sin(y*Math.PI)+40*Math.sin(y/3*Math.PI))*2/3;
+    r+=(160*Math.sin(y/12*Math.PI)+320*Math.sin(y*Math.PI/30))*2/3;return r;};
+  const tLng=(x,y)=>{let r=300+x+2*y+0.1*x*x+0.1*x*y+0.1*Math.sqrt(Math.abs(x));
+    r+=(20*Math.sin(6*x*Math.PI)+20*Math.sin(2*x*Math.PI))*2/3;
+    r+=(20*Math.sin(x*Math.PI)+40*Math.sin(x/3*Math.PI))*2/3;
+    r+=(150*Math.sin(x/12*Math.PI)+300*Math.sin(x/30*Math.PI))*2/3;return r;};
+  let dLat=tLat(lng-105,lat-35), dLng=tLng(lng-105,lat-35);
+  const radLat=lat/180*Math.PI;
+  let magic=Math.sin(radLat); magic=1-ee*magic*magic;
+  const sq=Math.sqrt(magic);
+  dLat=(dLat*180)/((a*(1-ee))/(magic*sq)*Math.PI);
+  dLng=(dLng*180)/(a/sq*Math.cos(radLat)*Math.PI);
+  return [lng+dLng, lat+dLat];
+}
+function gcj02ToWgs84(lng,lat){
+  const [gLng,gLat]=wgs84ToGcj02(lng,lat);
+  return [2*lng-gLng, 2*lat-gLat];
+}
+const gcj=p=>{const [lng,lat]=wgs84ToGcj02(p.lng,p.lat);return {lng,lat};};
+
+const amapUrl=p=>{const g=gcj(p);
+  return `https://uri.amap.com/marker?position=${g.lng.toFixed(6)},${g.lat.toFixed(6)}&name=${encodeURIComponent(p.name)}&coordinate=gaode&callnative=1&src=nbroute`;};
+const baiduUrl=p=>{const g=gcj(p);
+  return `https://api.map.baidu.com/marker?location=${g.lat.toFixed(6)},${g.lng.toFixed(6)}&title=${encodeURIComponent(p.name)}&content=${encodeURIComponent(p.addr||'')}&output=html&coord_type=gcj02&src=webapp`;};
+const tencentUrl=p=>{const g=gcj(p);
+  return `https://apis.map.qq.com/uri/v1/marker?marker=coord:${g.lat.toFixed(6)},${g.lng.toFixed(6)};title:${encodeURIComponent(p.name)};addr:${encodeURIComponent(p.addr||'')}&referer=nbroute`;};
+
+/* ========================= 4. 存取 ========================= */
+function normalize(p,i){
+  return {id:p.id||'p'+(i+1), name:p.name||'未命名点位', addr:p.addr||'',
+    lng:Number(p.lng), lat:Number(p.lat), placeholder:!!p.placeholder};
+}
+let hadStored=false; /* 浏览器里已有保存过的数据(含手动排序) */
+function loadPoints(){
+  try{
+    const raw=localStorage.getItem(STORAGE_KEY);
+    if(raw){ const arr=JSON.parse(raw);
+      if(Array.isArray(arr)&&arr.length){ hadStored=true; return arr.map(normalize); } }
+  }catch(e){}
+  return DEFAULT_POINTS.map(normalize);
+}
+function savePoints(){ try{localStorage.setItem(STORAGE_KEY,JSON.stringify(points));}catch(e){} }
+
+/* ========================= 4.5 路线自动规划 ========================= */
+const ROUTE_START={lng:121.7257,lat:29.9225}; /* 路线起点:浃江小区水木轩(北仑小港,海天路1688号附近) */
+const START_NAME='浃江小区水木轩';
+const START_ADDR='宁波市北仑区小港街道海天路1688号附近';
+function optimizeOrder(list){
+  if(list.length<3) return list.slice();
+  let order=[]; let cur=ROUTE_START; const rest=list.slice();
+  while(rest.length){
+    let bi=0,bd=1e9;
+    for(let i=0;i<rest.length;i++){
+      const d=haversine(cur,rest[i]);
+      if(d<bd){ bd=d; bi=i; }
+    }
+    order.push(rest[bi]); cur=rest[bi]; rest.splice(bi,1);
+  }
+  const total=o=>{
+    let t=haversine(ROUTE_START,o[0]);
+    for(let i=1;i<o.length;i++) t+=haversine(o[i-1],o[i]);
+    return t;
+  };
+  let improved=true;
+  while(improved){
+    improved=false;
+    for(let i=0;i<order.length-1;i++)for(let j=i+1;j<order.length;j++){
+      const n=order.slice(0,i).concat(order.slice(i,j+1).reverse(),order.slice(j+1));
+      if(total(n)<total(order)-0.01){ order=n; improved=true; }
+    }
+  }
+  return order;
+}
+let manualOrder=false; /* 手动拖动排序后为 true:增删点位保持手排顺序,点「智能排序」或恢复默认才重新优化 */
+function autoRoute(){
+  const real=points.filter(p=>!p.placeholder);
+  const ph=points.filter(p=>p.placeholder);
+  points=optimizeOrder(real).concat(ph);
+  manualOrder=false;
+}
+
+/* ========================= 5. 选中 ========================= */
+function select(id){
+  selectedId=id;
+  document.querySelectorAll('.item').forEach(el=>{
+    el.classList.toggle('active',el.dataset.id===id);
+  });
+  if(engine) engine.select(id);
+  if(id){
+    const el=document.querySelector(`.item[data-id="${id}"]`);
+    if(el) el.scrollIntoView({block:'nearest',behavior:'smooth'});
+  }
+}
+function deletePoint(id){
+  const p=points.find(x=>x.id===id);
+  if(!p) return;
+  if(!confirm(`删除「${p.name}」？`)) return;
+  points=points.filter(x=>x.id!==id);
+  if(selectedId===id) selectedId=null;
+  savePoints(); refreshAll();
+}
+
+/* ========================= 6. 侧边栏 ========================= */
+function renderList(){
+  listEl.innerHTML='';
+  points.forEach((p,i)=>{
+    const prev=i>0?points[i-1]:null;
+    const seg=prev?haversine(prev,p):haversine(ROUTE_START,p);
+    const el=document.createElement('div');
+    el.className='item'+(p.id===selectedId?' active':'')+(p.placeholder?' ph':'');
+    el.dataset.id=p.id;
+    el.innerHTML=`
+      <div class="drag" title="按住拖动调整顺序">≡</div>
+      <div class="idx">${i+1}</div>
+      <div class="body">
+        <div class="name">${esc(p.name)}</div>
+        <div class="addr">${esc(p.addr)}</div>
+        <div class="meta">${p.placeholder?'待补充':(prev?`距上一点直线 ${seg.toFixed(1)} km`:`距起点(${START_NAME}) ${seg.toFixed(1)} km`)}</div>
+        <div class="links">
+          <a href="${esc(amapUrl(p))}" target="_blank" rel="noopener">高德</a>
+          <a href="${esc(baiduUrl(p))}" target="_blank" rel="noopener">百度</a>
+          <a href="${esc(tencentUrl(p))}" target="_blank" rel="noopener">腾讯</a>
+        </div>
+      </div>
+      <div class="ops">
+        <button data-act="edit" title="编辑">✎</button>
+        <button data-act="del" title="删除">✕</button>
+      </div>`;
+    listEl.appendChild(el);
+  });
+  updateStats();
+}
+function updateStats(){
+  const routePts=points.filter(p=>!p.placeholder);
+  let total=0;
+  if(routePts.length) total+=haversine(ROUTE_START,routePts[0]);
+  for(let i=1;i<routePts.length;i++) total+=haversine(routePts[i-1],routePts[i]);
+  statsEl.innerHTML=
+    `<span>起点 ${START_NAME}</span>`+
+    `<span>${points.length} 个点位</span>`+
+    `<span>路线总长 ${total.toFixed(1)} km</span>`+
+    `<span>预估驾车 ≈ ${Math.round(total*1.35)} km</span>`;
+}
+function refreshAll(){ if(!manualOrder) autoRoute(); renderList(); if(engine) engine.refresh(); }
+
+let suppressClick=false; /* 拖动刚结束时忽略一次点击 */
+listEl.addEventListener('click',e=>{
+  if(suppressClick){ suppressClick=false; return; }
+  const item=e.target.closest('.item');
+  if(!item) return;
+  const id=item.dataset.id;
+  const p=points.find(x=>x.id===id);
+  const act=e.target.dataset.act;
+  if(act==='edit'){ openModal(p); return; }
+  if(act==='del'){ deletePoint(id); return; }
+  if(e.target.tagName==='A') return;
+  select(id);
+  if(engine) engine.panTo(p);
+});
+
+/* --- 拖动排序:按住 ≡ 把手拖动,松手后路线按新顺序重新输出 --- */
+(function(){
+  const st={el:null,moved:false,sy:0,py:0,timer:null};
+  function stopScroll(){ if(st.timer){ clearInterval(st.timer); st.timer=null; } }
+  function startScroll(){
+    stopScroll();
+    st.timer=setInterval(()=>{
+      const r=listEl.getBoundingClientRect(), y=st.py;
+      if(y<r.top+70) listEl.scrollTop-=14;
+      else if(y>r.bottom-70) listEl.scrollTop+=14;
+    },40);
+  }
+  listEl.addEventListener('pointerdown',e=>{
+    if(!e.target.closest('.drag')) return;
+    const item=e.target.closest('.item');
+    if(!item||item.classList.contains('ph')) return;
+    e.preventDefault();
+    st.el=item; st.moved=false; st.sy=e.clientY; st.py=e.clientY;
+    item.classList.add('dragging');
+    try{ item.setPointerCapture(e.pointerId); }catch(err){}
+  });
+  listEl.addEventListener('pointermove',e=>{
+    if(!st.el) return;
+    st.py=e.clientY;
+    if(!st.moved&&Math.abs(e.clientY-st.sy)<5) return;
+    st.moved=true;
+    startScroll();
+    const under=document.elementFromPoint(e.clientX,e.clientY);
+    const other=under?under.closest('.item'):null;
+    if(other&&other!==st.el&&!other.classList.contains('ph')){
+      const r=other.getBoundingClientRect();
+      const before=e.clientY<r.top+r.height/2;
+      listEl.insertBefore(st.el,before?other:other.nextSibling);
+    }
+  });
+  function endDrag(){
+    if(!st.el) return;
+    stopScroll();
+    st.el.classList.remove('dragging');
+    st.el=null;
+    if(!st.moved) return;
+    suppressClick=true;
+    const ids=[...listEl.querySelectorAll('.item')].map(el=>el.dataset.id);
+    const byId={}; points.forEach(p=>byId[p.id]=p);
+    const real=ids.map(id=>byId[id]).filter(p=>p&&!p.placeholder);
+    const ph=points.filter(p=>p.placeholder);
+    points=real.concat(ph);
+    manualOrder=true;
+    savePoints(); renderList();
+    if(engine) engine.refresh();
+  }
+  listEl.addEventListener('pointerup',endDrag);
+  listEl.addEventListener('pointercancel',endDrag);
+})();
+
+/* ========================= 7. 弹窗 ========================= */
+const modal=document.getElementById('modal');
+const fName=document.getElementById('fName');
+const fAddr=document.getElementById('fAddr');
+const fLat=document.getElementById('fLat');
+const fLng=document.getElementById('fLng');
+
+function openModal(p){
+  editingId=p?p.id:null;
+  document.getElementById('modalTitle').textContent=p?'编辑点位':'添加点位';
+  fName.value=p?p.name:'';
+  fAddr.value=p?p.addr:'';
+  fLat.value=p?p.lat:'';
+  fLng.value=p?p.lng:'';
+  modal.classList.add('show');
+  setTimeout(()=>fName.focus(),100);
+}
+function closeModal(){ modal.classList.remove('show'); editingId=null; }
+
+document.getElementById('mCancel').onclick=closeModal;
+modal.addEventListener('click',e=>{ if(e.target===modal) closeModal(); });
+
+document.getElementById('mSave').onclick=()=>{
+  const name=fName.value.trim();
+  const addr=fAddr.value.trim();
+  const lat=parseFloat(fLat.value);
+  const lng=parseFloat(fLng.value);
+  if(!name){ alert('请填写点位名称'); return; }
+  if(!isFinite(lat)||lat<20||lat>55){ alert('纬度不合法（应在 20~55 之间）'); return; }
+  if(!isFinite(lng)||lng<70||lng>140){ alert('经度不合法（应在 70~140 之间）'); return; }
+
+  if(editingId){
+    const p=points.find(x=>x.id===editingId);
+    Object.assign(p,{name,addr,lat,lng,placeholder:false});
+  }else{
+    points.push({id:uid(),name,addr,lat,lng,placeholder:false});
+  }
+  savePoints(); closeModal(); refreshAll();
+};
+
+/* ========================= 8. 工具栏 ========================= */
+const btnFit=document.getElementById('btnFit');
+const btnLine=document.getElementById('btnLine');
+const btnLabel=document.getElementById('btnLabel');
+const btnBase=document.getElementById('btnBase');
+
+btnFit.onclick=()=>engine&&engine.fit();
+btnLine.onclick=()=>{ showLine=!showLine; btnLine.classList.toggle('on',showLine); engine&&engine.setLine(showLine); };
+btnLabel.onclick=()=>{ showLabel=!showLabel; btnLabel.classList.toggle('on',showLabel); engine&&engine.setLabel(showLabel); };
+
+const BASE_CYCLE=['gaode','gaodeSat','osm'];
+btnBase.onclick=()=>{
+  if(!window.L) return;
+  baseKey=BASE_CYCLE[(BASE_CYCLE.indexOf(baseKey)+1)%BASE_CYCLE.length];
+  engine.setBase(baseKey);
+};
+
+document.getElementById('btnRoute').onclick=()=>{ manualOrder=false; refreshAll(); };
+document.getElementById('btnAdd').onclick=()=>openModal(null);
+
+document.getElementById('btnExport').onclick=()=>{
+  const blob=new Blob([JSON.stringify(points,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='宁波红色点位.json';
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+};
+
+const fileInput=document.getElementById('fileInput');
+document.getElementById('btnImport').onclick=()=>fileInput.click();
+fileInput.onchange=e=>{
+  const f=e.target.files[0];
+  if(!f) return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    try{
+      const arr=JSON.parse(reader.result);
+      if(!Array.isArray(arr)||!arr.length) throw new Error('格式不对');
+      points=arr.map(normalize);
+      selectedId=null;
+      savePoints(); refreshAll();
+      alert(`已导入 ${points.length} 个点位`);
+    }catch(err){ alert('导入失败：'+err.message); }
+    fileInput.value='';
+  };
+  reader.readAsText(f,'utf-8');
+};
+
+document.getElementById('btnReset').onclick=()=>{
+  if(!confirm('恢复为默认点位？当前修改将被覆盖。')) return;
+  points=DEFAULT_POINTS.map(normalize);
+  selectedId=null;
+  manualOrder=false;
+  savePoints(); refreshAll();
+};
+
+/* ========================= 9. Leaflet 引擎（真实地图） ========================= */
+const SOURCES={
+  gaode:{label:'高德',gcj:true,maxZoom:18,subdomains:'1234',attribution:'© 高德地图',
+    url:'https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}'},
+  gaodeSat:{label:'卫星',gcj:true,maxZoom:18,subdomains:'1234',attribution:'© 高德地图',
+    url:'https://webst0{s}.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}'},
+  osm:{label:'OSM',gcj:false,maxZoom:19,subdomains:'abc',
+    attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    url:'https://tile.openstreetmap.org/{z}/{x}/{y}.png'}
+};
+
+function popupHtml(p,i){
+  const prev=i>0?points[i-1]:null;
+  const seg=prev?haversine(prev,p):0;
+  return `
+  <div class="pop">
+    <b>${esc(p.name)}</b>
+    <div class="pop-addr">${esc(p.addr)}</div>
+    <div class="pop-meta">${prev?`距上一点直线 ${seg.toFixed(1)} km`:'起点'}</div>
+    <div class="pop-links">
+      <a href="${esc(amapUrl(p))}" target="_blank" rel="noopener">高德导航</a>
+      <a href="${esc(baiduUrl(p))}" target="_blank" rel="noopener">百度</a>
+      <a href="${esc(tencentUrl(p))}" target="_blank" rel="noopener">腾讯</a>
+    </div>
+    <div class="pop-btns">
+      <button class="pop-edit" data-id="${esc(p.id)}">编辑</button>
+      <button class="pop-del" data-id="${esc(p.id)}">删除</button>
+    </div>
+  </div>`;
+}
+
+function initLeaflet(){
+  const mapEl=document.getElementById('map');
+  const map=L.map(mapEl,{zoomControl:false});
+  map.attributionControl.setPosition('bottomleft');
+  L.control.zoom({position:'bottomright'}).addTo(map);
+
+  const markerGroup=L.layerGroup().addTo(map);
+  const segGroup=L.layerGroup().addTo(map);
+  const routeGroup=L.layerGroup().addTo(map);
+  let layerBase=null;
+  const markers=new Map();
+  let lastSelId=null;
+
+  const disp=p=>SOURCES[baseKey].gcj?gcj(p):p;
+
+  const mkIcon=(p,i)=>{
+    const sel=p.id===selectedId, ph=!!p.placeholder;
+    const label=showLabel?`<div class="pl">${esc(p.name)}</div>`:'';
+    return L.divIcon({
+      className:'pm'+(ph?' ph':'')+(sel?' sel':''),
+      html:`<div class="dot">${i+1}</div>${label}`,
+      iconSize:[24,24], iconAnchor:[12,12], popupAnchor:[0,-14]
+    });
+  };
+
+  const buildMarkers=()=>{
+    markerGroup.clearLayers(); markers.clear();
+    points.forEach((p,i)=>{
+      const d=disp(p);
+      const m=L.marker([d.lat,d.lng],{icon:mkIcon(p,i)});
+      m.on('click',()=>{ if(!isTouch) m.closeTooltip(); select(p.id); m.openPopup(); });
+      if(!isTouch){
+        m.on('mouseover',()=>{ const el=m.getElement(); if(el) el.classList.add('hov'); });
+        m.on('mouseout',()=>{ const el=m.getElement(); if(el) el.classList.remove('hov'); });
+        m.bindTooltip(`<b>${esc(p.name)}</b><br>${esc(p.addr)}`,
+          {direction:'top',offset:L.point(0,-22),opacity:1});
+      }
+      m.bindPopup(popupHtml(p,i),{offset:L.point(0,-4)});
+      markers.set(p.id,m);
+      m.addTo(markerGroup);
+    });
+    const s=disp(ROUTE_START);
+    const sm=L.marker([s.lat,s.lng],{icon:L.divIcon({
+      className:'pm start',
+      html:`<div class="dot">起</div>${showLabel?`<div class="pl">起点·${START_NAME}</div>`:''}`,
+      iconSize:[24,24],iconAnchor:[12,12],popupAnchor:[0,-14]
+    })});
+    sm.bindPopup(`<b>起点:${esc(START_NAME)}</b><br>${esc(START_ADDR)}`,{offset:L.point(0,-4)});
+    sm.addTo(markerGroup);
+  };
+
+  const buildRoute=()=>{
+    routeGroup.clearLayers(); segGroup.clearLayers();
+    const routePts=points.filter(p=>!p.placeholder);
+    if(!showLine||routePts.length<1) return;
+    const s=disp(ROUTE_START);
+    const coords=[[s.lat,s.lng],...routePts.map(p=>{const d=disp(p);return [d.lat,d.lng];})];
+    L.polyline(coords,{color:'#fff',weight:7,opacity:.85}).addTo(routeGroup);
+    L.polyline(coords,{color:'#2563eb',weight:3,opacity:.85}).addTo(routeGroup);
+    const segs=[];
+    const sd=haversine(ROUTE_START,routePts[0]);
+    if(sd>=0.3) segs.push([sd,s,disp(routePts[0])]);
+    for(let i=1;i<routePts.length;i++){
+      const d=haversine(routePts[i-1],routePts[i]);
+      if(d<0.3) continue;
+      segs.push([d,disp(routePts[i-1]),disp(routePts[i])]);
+    }
+    segs.forEach(([d,a,b])=>{
+      const icon=L.divIcon({className:'seg',html:`<span>${d.toFixed(1)}km</span>`,
+        iconSize:[48,16],iconAnchor:[24,8]});
+      L.marker([(a.lat+b.lat)/2,(a.lng+b.lng)/2],{icon,interactive:false}).addTo(segGroup);
+    });
+  };
+  const rebuild=()=>{ buildMarkers(); buildRoute(); };
+
+  const fit=()=>{
+    const s=disp(ROUTE_START);
+    if(!points.length){ map.setView([s.lat,s.lng],12); return; }
+    if(points.length===1){ const d=disp(points[0]); map.setView([d.lat,d.lng],15); return; }
+    map.fitBounds(L.latLngBounds([[s.lat,s.lng],...points.map(p=>{const d=disp(p);return [d.lat,d.lng];})]),
+      {padding:[40,40],maxZoom:15});
+  };
+
+  const setBase=(key)=>{
+    const next=SOURCES[key]||SOURCES.gaode;
+    let center=null, zoom=null;
+    if(layerBase){
+      const c=map.getCenter(); zoom=map.getZoom();
+      const cur=SOURCES[baseKey];
+      const wgs=cur.gcj?gcj02ToWgs84(c.lng,c.lat):[c.lng,c.lat];
+      const nd=next.gcj?wgs84ToGcj02(wgs[0],wgs[1]):wgs;
+      center=[nd[1],nd[0]];
+    }
+    if(layerBase) layerBase.remove();
+    layerBase=L.tileLayer(next.url,{subdomains:next.subdomains,
+      maxZoom:next.maxZoom,attribution:next.attribution}).addTo(map);
+    baseKey=key;
+    btnBase.textContent='底图·'+next.label;
+    if(center) map.setView(center,zoom,{animate:false});
+    rebuild();
+  };
+
+  map.on('click',()=>select(null));
+  map.on('popupopen',e=>{
+    const box=e.popup.getElement();
+    if(!box) return;
+    const ed=box.querySelector('.pop-edit'), del=box.querySelector('.pop-del');
+    if(ed) ed.onclick=()=>{ const p=points.find(x=>x.id===ed.dataset.id); if(p){ map.closePopup(); openModal(p); } };
+    if(del) del.onclick=()=>{ map.closePopup(); deletePoint(del.dataset.id); };
+  });
+  window.addEventListener('resize',()=>map.invalidateSize());
+
+  setBase(baseKey);
+  fit();
+  document.querySelector('.hint').style.display='none';
+
+  return {
+    fit,
+    select(id){
+      [id,lastSelId].forEach(pid=>{
+        if(!pid) return;
+        const m=markers.get(pid);
+        const p=points.find(x=>x.id===pid);
+        if(!m||!p) return;
+        m.setIcon(mkIcon(p,points.indexOf(p)));
+      });
+      lastSelId=id;
+    },
+    panTo(p){ const d=disp(p); map.panTo([d.lat,d.lng]); },
+    setLine(){ buildRoute(); },
+    setLabel(){ buildMarkers(); },
+    refresh(){ rebuild(); },
+    setBase
+  };
+}
+
+/* ========================= 10. Canvas 引擎（离线兜底示意图） ========================= */
+function initCanvas(){
+  const mapEl=document.getElementById('map');
+  const canvas=document.createElement('canvas');
+  canvas.id='map';
+  canvas.style.touchAction='none';
+  mapEl.replaceWith(canvas);
+
+  const ctx=canvas.getContext('2d');
+  let hoverId=null, view=null, W=0, H=0, dpr=1;
+
+  const REGIONS=[
+    {name:"海曙区",lng:121.50,lat:29.86},{name:"江北区",lng:121.60,lat:29.95},
+    {name:"镇海区",lng:121.72,lat:30.02},{name:"北仑区",lng:121.94,lat:29.88},
+    {name:"鄞州区",lng:121.68,lat:29.72},{name:"奉化区",lng:121.40,lat:29.56},
+    {name:"余姚市",lng:121.15,lat:29.98},{name:"慈溪市",lng:121.24,lat:30.22},
+    {name:"宁海县",lng:121.42,lat:29.24},{name:"象山县",lng:121.92,lat:29.36}
+  ];
+
+  function toXY(lng,lat){
+    return { x:view.cx+(lng-view.cLng)*view.kx*view.scale,
+             y:view.cy-(lat-view.cLat)*view.scale };
+  }
+  function toLngLat(x,y){
+    return { lng:view.cLng+(x-view.cx)/(view.kx*view.scale),
+             lat:view.cLat-(y-view.cy)/view.scale };
+  }
+  function computeView(){
+    const pad=80;
+    let minLng=180,maxLng=-180,minLat=90,maxLat=-90;
+    const add=(lng,lat)=>{
+      minLng=Math.min(minLng,lng); maxLng=Math.max(maxLng,lng);
+      minLat=Math.min(minLat,lat); maxLat=Math.max(maxLat,lat);
+    };
+    points.forEach(p=>add(p.lng,p.lat));
+    add(ROUTE_START.lng,ROUTE_START.lat);
+    if(!points.length){ minLng=121.35;maxLng=121.95;minLat=29.25;maxLat=29.95; }
+    const MIN=0.5, cLng0=(minLng+maxLng)/2, cLat0=(minLat+maxLat)/2;
+    if(maxLng-minLng<MIN){ minLng=cLng0-MIN/2; maxLng=cLng0+MIN/2; }
+    if(maxLat-minLat<MIN*0.8){ minLat=cLat0-MIN*0.4; maxLat=cLat0+MIN*0.4; }
+
+    const cLat=(minLat+maxLat)/2;
+    const kx=Math.cos(cLat*Math.PI/180);
+    const spanX=(maxLng-minLng)*kx, spanY=(maxLat-minLat);
+    const availW=Math.max(W-pad*2,60), availH=Math.max(H-pad*2,60);
+    view={ scale:Math.min(availW/spanX,availH/spanY), kx, cx:W/2, cy:H/2,
+           cLng:(minLng+maxLng)/2, cLat };
+  }
+  function zoomAt(px,py,factor){
+    const anchor=toLngLat(px,py);
+    view.scale=Math.max(50, Math.min(6e6, view.scale*factor));
+    view.cLng=anchor.lng-(px-view.cx)/(view.kx*view.scale);
+    view.cLat=anchor.lat+(py-view.cy)/view.scale;
+    draw();
+  }
+
+  function roundRect(x,y,w,h,r){
+    ctx.beginPath();
+    ctx.moveTo(x+r,y);
+    ctx.arcTo(x+w,y,x+w,y+h,r);
+    ctx.arcTo(x+w,y+h,x,y+h,r);
+    ctx.arcTo(x,y+h,x,y,r);
+    ctx.arcTo(x,y,x+w,y,r);
+    ctx.closePath();
+  }
+  function drawGrid(){
+    const step=0.1;
+    const tl=toLngLat(0,0), br=toLngLat(W,H);
+    ctx.save();
+    ctx.strokeStyle='rgba(148,163,184,.22)';
+    ctx.lineWidth=1;
+    ctx.beginPath();
+    for(let i=Math.ceil(tl.lng/step); i*step<=br.lng; i++){
+      const x=toXY(i*step,0).x;
+      ctx.moveTo(x,0); ctx.lineTo(x,H);
+    }
+    for(let j=Math.ceil(br.lat/step); j*step<=tl.lat; j++){
+      const y=toXY(0,j*step).y;
+      ctx.moveTo(0,y); ctx.lineTo(W,y);
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+  function drawRegions(){
+    ctx.save();
+    ctx.font='600 13px system-ui,sans-serif';
+    ctx.fillStyle='rgba(100,116,139,.42)';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    REGIONS.forEach(r=>{
+      const p=toXY(r.lng,r.lat);
+      if(p.x<50||p.x>W-50||p.y<40||p.y>H-40) return;
+      ctx.fillText(r.name,p.x,p.y);
+    });
+    ctx.restore();
+  }
+  function drawRoute(){
+    const routePts=points.filter(p=>!p.placeholder);
+    if(routePts.length<1) return;
+    ctx.save();
+    ctx.strokeStyle='rgba(37,99,235,.7)';
+    ctx.lineWidth=2.5; ctx.lineJoin='round'; ctx.lineCap='round';
+    ctx.beginPath();
+    const s=toXY(ROUTE_START.lng,ROUTE_START.lat);
+    ctx.moveTo(s.x,s.y);
+    routePts.forEach(p=>{
+      const {x,y}=toXY(p.lng,p.lat);
+      ctx.lineTo(x,y);
+    });
+    ctx.stroke();
+
+    ctx.font='11px system-ui,sans-serif';
+    ctx.textAlign='center'; ctx.textBaseline='bottom';
+    const drawSeg=(a,b,d)=>{
+      const mx=(a.x+b.x)/2, my=(a.y+b.y)/2;
+      const txt=d.toFixed(1)+'km';
+      const tw=ctx.measureText(txt).width;
+      ctx.fillStyle='rgba(255,255,255,.88)';
+      roundRect(mx-tw/2-4,my-17,tw+8,15,7); ctx.fill();
+      ctx.fillStyle='#2563eb';
+      ctx.fillText(txt,mx,my-3);
+    };
+    const sd=haversine(ROUTE_START,routePts[0]);
+    if(sd>=0.3) drawSeg(s,toXY(routePts[0].lng,routePts[0].lat),sd);
+    for(let i=1;i<routePts.length;i++){
+      const d=haversine(routePts[i-1],routePts[i]);
+      if(d<0.3) continue;
+      drawSeg(toXY(routePts[i-1].lng,routePts[i-1].lat),toXY(routePts[i].lng,routePts[i].lat),d);
+    }
+    ctx.restore();
+  }
+  function drawStart(){
+    const {x,y}=toXY(ROUTE_START.lng,ROUTE_START.lat);
+    ctx.beginPath();
+    ctx.fillStyle='#059669';
+    roundRect(x-9,y-9,18,18,5); ctx.fill();
+    ctx.lineWidth=2; ctx.strokeStyle='#fff'; ctx.stroke();
+    ctx.fillStyle='#fff';
+    ctx.font='600 11px system-ui,sans-serif';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('起',x,y+0.5);
+    if(showLabel){
+      const label='起点·'+START_NAME;
+      ctx.font='12px system-ui,sans-serif';
+      const tw=ctx.measureText(label).width;
+      ctx.fillStyle='rgba(255,255,255,.85)';
+      roundRect(x-tw/2-4,y-27,tw+8,18,6); ctx.fill();
+      ctx.fillStyle='#059669';
+      ctx.fillText(label,x,y-17);
+    }
+  }
+  function drawPoints(){
+    points.forEach((p,i)=>{
+      const {x,y}=toXY(p.lng,p.lat);
+      const isSel=p.id===selectedId, isHov=p.id===hoverId, isPh=!!p.placeholder;
+      const r=isSel?11:(isHov?9:7.5);
+
+      if(isSel||isHov){
+        ctx.beginPath();
+        ctx.fillStyle=isPh?'rgba(148,163,184,.25)':'rgba(201,35,35,.18)';
+        ctx.arc(x,y,r+9,0,Math.PI*2); ctx.fill();
+      }
+      ctx.beginPath();
+      ctx.arc(x,y,r,0,Math.PI*2);
+      ctx.fillStyle=isPh?'#94a3b8':(isSel?'#111827':'#dc2626');
+      ctx.fill();
+      ctx.lineWidth=2; ctx.strokeStyle='#fff'; ctx.stroke();
+
+      ctx.fillStyle='#fff';
+      ctx.font=`600 ${Math.round(r*1.05)}px system-ui,sans-serif`;
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(String(i+1),x,y+0.5);
+
+      if(showLabel){
+        const label=p.name;
+        ctx.font='12px system-ui,sans-serif';
+        ctx.textAlign='left'; ctx.textBaseline='middle';
+        const tw=ctx.measureText(label).width;
+        const lx=x+r+6, ly=y;
+        ctx.fillStyle='rgba(255,255,255,.85)';
+        roundRect(lx-4,ly-9,tw+8,18,6); ctx.fill();
+        ctx.fillStyle=isSel?'#111827':'#475569';
+        ctx.fillText(label,lx,ly+0.5);
+      }
+    });
+  }
+  function drawScaleBar(){
+    const pxPerKm=view.scale/111.32;
+    const cands=[1,2,5,10,20,50,100,200];
+    let km=cands[0];
+    for(const c of cands){ if(c*pxPerKm<=Math.min(140,W*0.35)) km=c; }
+    const len=km*pxPerKm, x0=22, y0=H-26;
+    ctx.save();
+    ctx.strokeStyle='#64748b'; ctx.lineWidth=2;
+    ctx.beginPath();
+    ctx.moveTo(x0,y0-6); ctx.lineTo(x0,y0);
+    ctx.lineTo(x0+len,y0); ctx.lineTo(x0+len,y0-6);
+    ctx.stroke();
+    ctx.fillStyle='#64748b'; ctx.font='11px system-ui,sans-serif';
+    ctx.textAlign='center'; ctx.textBaseline='bottom';
+    ctx.fillText(km+' km',x0+len/2,y0-7);
+    ctx.restore();
+  }
+  function draw(){
+    if(!view) return;
+    ctx.clearRect(0,0,W,H);
+    const bg=ctx.createLinearGradient(0,0,W,H);
+    bg.addColorStop(0,'#f8fafc'); bg.addColorStop(1,'#e9f0f7');
+    ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+
+    drawGrid();
+    drawRegions();
+    if(showLine) drawRoute();
+    drawPoints();
+    drawStart();
+    drawScaleBar();
+  }
+
+  function resize(){
+    const rect=canvas.parentElement.getBoundingClientRect();
+    W=Math.max(rect.width,160); H=Math.max(rect.height,160);
+    dpr=Math.min(window.devicePixelRatio||1,2);
+    canvas.width=Math.round(W*dpr);
+    canvas.height=Math.round(H*dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    computeView();
+    draw();
+  }
+
+  function hitTest(px,py){
+    let best=null,bestD=isTouch?26:18;
+    points.forEach(p=>{
+      const {x,y}=toXY(p.lng,p.lat);
+      const d=Math.hypot(x-px,y-py);
+      if(d<bestD){ bestD=d; best=p; }
+    });
+    return best;
+  }
+  function showTip(p,cx,cy){
+    tipEl.innerHTML=`<b>${esc(p.name)}</b><br>${esc(p.addr)}`;
+    tipEl.classList.add('show');
+    let tx=cx+14, ty=cy+16;
+    if(tx+250>window.innerWidth) tx=cx-250;
+    if(ty+70>window.innerHeight) ty=cy-70;
+    tipEl.style.left=tx+'px'; tipEl.style.top=ty+'px';
+  }
+  function hideTip(){ tipEl.classList.remove('show'); }
+
+  /* --- 鼠标 --- */
+  canvas.addEventListener('mousemove',e=>{
+    if(isTouch) return;
+    const r=canvas.getBoundingClientRect();
+    const px=e.clientX-r.left, py=e.clientY-r.top;
+    const p=hitTest(px,py);
+    const id=p?p.id:null;
+    if(id!==hoverId){ hoverId=id; draw(); }
+    canvas.style.cursor=p?'pointer':'default';
+    p?showTip(p,e.clientX,e.clientY):hideTip();
+  });
+  canvas.addEventListener('mouseleave',()=>{ hoverId=null; hideTip(); draw(); });
+  canvas.addEventListener('click',e=>{
+    if(isTouch) return;
+    const r=canvas.getBoundingClientRect();
+    const p=hitTest(e.clientX-r.left,e.clientY-r.top);
+    select(p?p.id:null);
+  });
+  canvas.addEventListener('wheel',e=>{
+    e.preventDefault();
+    const r=canvas.getBoundingClientRect();
+    zoomAt(e.clientX-r.left,e.clientY-r.top,e.deltaY<0?1.12:1/1.12);
+  },{passive:false});
+
+  /* --- 触摸 --- */
+  let ts={mode:null,lastX:0,lastY:0,startX:0,startY:0,lastDist:0,moved:false};
+  canvas.addEventListener('touchstart',e=>{
+    if(e.touches.length===1){
+      const t=e.touches[0];
+      ts.mode='pan'; ts.moved=false;
+      ts.lastX=t.clientX; ts.lastY=t.clientY;
+      ts.startX=t.clientX; ts.startY=t.clientY;
+    }else if(e.touches.length===2){
+      ts.mode='pinch';
+      ts.lastDist=Math.hypot(
+        e.touches[0].clientX-e.touches[1].clientX,
+        e.touches[0].clientY-e.touches[1].clientY);
+    }
+  },{passive:true});
+
+  canvas.addEventListener('touchmove',e=>{
+    if(e.touches.length===1 && ts.mode==='pan'){
+      e.preventDefault();
+      const t=e.touches[0];
+      const dx=t.clientX-ts.lastX, dy=t.clientY-ts.lastY;
+      if(Math.abs(t.clientX-ts.startX)+Math.abs(t.clientY-ts.startY)>6) ts.moved=true;
+      view.cx+=dx; view.cy+=dy;
+      ts.lastX=t.clientX; ts.lastY=t.clientY;
+      draw();
+    }else if(e.touches.length===2 && ts.mode==='pinch'){
+      e.preventDefault();
+      const d=Math.hypot(
+        e.touches[0].clientX-e.touches[1].clientX,
+        e.touches[0].clientY-e.touches[1].clientY);
+      if(ts.lastDist>0){
+        const r=canvas.getBoundingClientRect();
+        const mx=(e.touches[0].clientX+e.touches[1].clientX)/2-r.left;
+        const my=(e.touches[0].clientY+e.touches[1].clientY)/2-r.top;
+        zoomAt(mx,my,d/ts.lastDist);
+      }
+      ts.lastDist=d;
+    }
+  },{passive:false});
+
+  canvas.addEventListener('touchend',e=>{
+    if(ts.mode==='pan' && !ts.moved && e.changedTouches.length===1){
+      const r=canvas.getBoundingClientRect();
+      const t=e.changedTouches[0];
+      const p=hitTest(t.clientX-r.left,t.clientY-r.top);
+      select(p?p.id:null);
+    }
+    ts.mode=null;
+  },{passive:true});
+
+  let rafId=null;
+  window.addEventListener('resize',()=>{
+    if(rafId) cancelAnimationFrame(rafId);
+    rafId=requestAnimationFrame(resize);
+  });
+  window.addEventListener('orientationchange',()=>setTimeout(resize,300));
+
+  resize();
+
+  return {
+    fit(){ computeView(); draw(); },
+    select(){ draw(); },
+    panTo(){},
+    setLine(){ draw(); },
+    setLabel(){ draw(); },
+    refresh(){ computeView(); draw(); },
+    setBase(){}
+  };
+}
+
+/* ========================= 11. 启动 ========================= */
+if(!hadStored) autoRoute(); else manualOrder=true;
+if(window.L){
+  engine=initLeaflet();
+}else{
+  engine=initCanvas();
+  document.getElementById('btnBase').style.display='none';
+}
+renderList();
+</script>
+</body>
+</html>
